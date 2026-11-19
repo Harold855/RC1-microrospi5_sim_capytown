@@ -4,7 +4,7 @@
 
 | Integrante | Rol | Trabajo realizado | Experimentos donde participo | % Participacion desarrollo del reto |
 |---|---|---|---|---|
-| Harold Lincoln Payco Espinoza | Control, Planificacion, Percepcion | Realizo desarrollo de scripts de ejecucion, sintonizacion de PID, corridas E5, E6 y E7, predicciones de la simulacion y robot real, graficas e informe| E2, E3, E4, E5, E7, E8 | 60% |
+| Harold Lincoln Payco Espinoza | Control, Planificacion, Percepcion | Realizo desarrollo de scripts de ejecucion, sintonizacion de PID, corridas E5, E6 y E7, predicciones de la simulacion y robot real, graficas e informe| E2, E3, E4, E5, E6, E7, E8 | 60% |
 | Jorge Daniel Rivera Nagaro | Control | Ayudo con la recalibracion de kp, kd, ki, kp_yaw, kd_yaw; medicion del recorrido y errores del robot en E6 y E7, | E6, E7 | 30% |
 | Rodrigo Sebastian Escobar Rosado | Integracion | Configuro el simulador inicial y ROS2 | E1 | 10% |
 
