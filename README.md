@@ -1,2 +1,94 @@
-# RC1-microrospi5_sim_capytown
-Simulador 2D del robot Yahboom MicroROS-Pi5 (ROS 2 Humble) + reto RC-1 de control PID
+# RC1-microrospi5_sim_capytown: Simulador del robot MicroROS-Pi5 + Reto RC-1 (control PID)
+
+## Equipo — Grupo 8 (S-003)
+
+| Integrante | Rol | Trabajo realizado | Experimentos donde participo | % Participacion desarrollo del reto |
+|---|---|---|---|---|
+| Harold Lincoln Payco Espinoza | Control, Planificacion, Percepcion | Realizo desarrollo de scripts de ejecucion, sintonizacion de PID, corridas E5, E6 y E7, predicciones de la simulacion y robot real, graficas e informe| E2, E3, E4, E5, E7, E8 | 60% |
+| Jorge Daniel Rivera Nagaro | Control | Ayudo con la recalibracion de kd, ki, kd_yaw, medicion del recorrido y errores del robot en E6 y E7, | E6, E7 | 30% |
+| Rodrigo Sebastian Escobar Rosado | Integracion | Configuro el simulador inicial y ROS2 | E1 | 10% |
+
+---
+
+Simulador **2D** en ROS 2 Humble que reemplaza al robot físico (`/cmd_vel` → `/odom`, `/scan`, IMU, cámara), se ve en RViz y trae pistas de carrera, piso irregular, odometría con error y un piloto automático con PID. Sirve para practicar en casa lo que luego se hace en el laboratorio con el robot real.
+
+Incluye además el **Reto RC-1 «Control PID: del simulador al robot real»** del curso de Robótica (ESAN, CapyTown).
+
+## Contenido
+
+| Carpeta / archivo | Qué es |
+|---|---|
+| `yahboomcar_ws/src/yahboomcar_sim/` | El simulador (nodo `sim_robot`, pistas, piloto PID, launch, RViz, pruebas) |
+| `yahboomcar_ws/src/…` (resto) | Paquetes del workspace Yahboom (descripción del robot, bringup, nav, etc.) |
+| `SIMULACION.md` | **Guía completa** del simulador: instalación, opciones, ruido, pistas, topics |
+| `instalar_en_wsl.sh` | Instalador para Ubuntu 22.04 en WSL2 |
+| `RC1_Control_PID_2026-2.docx` | Documento del reto RC-1 (reto + guía) |
+| `docs/rc1/` | Herramientas del RC-1: `cierre_real.py`, `09_plot_csv.py` parcheado, figuras |
+| `docs/pistas/` | Vistas previas de las pistas |
+| `docker/`, `ros2_humble.sh`, `setup_workspace.sh`, `WORKSPACE_SETUP.md` | Entorno Docker del robot real (Raspberry Pi 5, arm64) |
+
+## Instalación del simulador (Windows 11 + WSL2)
+
+1. En PowerShell como administrador: `wsl --install -d Ubuntu-22.04` y reiniciar.
+2. Copiar este repositorio **dentro** de Ubuntu (por ejemplo `~/microrospi5`); trabajar desde `/mnt/c/...` es mucho más lento.
+   ```bash
+   git clone https://github.com/codeplai/microrospi5-sim.git ~/microrospi5
+   ```
+3. Instalar y compilar (descarga ≈ 3 GB: ROS 2 Humble, RViz, Nav2, SLAM Toolbox, teleop):
+   ```bash
+   cd ~/microrospi5 && bash instalar_en_wsl.sh
+   ```
+4. Lanzar (WSLg muestra RViz directamente):
+   ```bash
+   ros2 launch yahboomcar_sim sim.launch.py world:=pista_intermedia laps:=3
+   ros2 run teleop_twist_keyboard teleop_twist_keyboard      # otra terminal
+   ```
+
+Requisitos: Windows 11 (o Windows 10 22H2 con WSL actualizado). Más opciones (`noise:=`, `autopilot:=true`, `world:=`…) en [`SIMULACION.md`](SIMULACION.md).
+
+Pruebas del núcleo sin ROS (Python): `cd yahboomcar_ws/src/yahboomcar_sim && python -m unittest discover -s test -v` (25 pruebas).
+
+## Reto RC-1 · Control PID: del simulador al robot real
+
+El grupo sintoniza un PID con el nodo `cuadrado_controller.py` de la clase y lo prueba en **tres plantas** con el mismo código: Python puro, este simulador y el robot real. Idea central: *un lazo cerrado es tan bueno como el sensor que lo cierra*.
+
+- **Experimento 1** – corregir una línea virtual de 2 m (bang-bang, P, P+D, PID).
+- **Experimento 2** – giro de 90° (efecto de Kp, Kd, Ki).
+- **Experimento 3** – cuadrado de 2 × 2 m: lazo abierto, PID sobre `/odom` y PID + Ki.
+- **Partes A–D** en el simulador, en la arena abierta `arena_rc1` (4 × 4 m); **Partes E–F** en el robot real, donde la verdad la mide la cinta métrica. La parte real concentra la mayor parte de la nota.
+
+El simulador publica `/sim/pose` (la pose **real**): con `docs/rc1/cierre_real.py` se compara lo que *cree* el robot (`/odom`) con lo que *pasó*. Con piso irregular, el nodo puede decir que cierra a 0.3 cm mientras la pose real queda a decenas de cm.
+
+```bash
+ros2 launch yahboomcar_sim sim.launch.py world:=arena_rc1 start:=1.0,1.0,0.0 robot_radius:=0.14 noise:=low
+python3 cuadrado_controller.py --ros-args -p experimento:=cuadrado -p log_csv:=exp3b_sim.csv   # nodo de la clase
+python3 docs/rc1/cierre_real.py --csv exp3b_real.csv --png exp3b_real.png --lado 2.0          # antes del nodo
+```
+
+El nodo de la clase (`scripts_pdi/cuadrado_controller.py` y `core_cuadrado.py`) **no está en este repositorio**: es material del curso.
+
+## Estado de la verificación
+
+- **Probado:** 25 pruebas sin ROS; compilación y ejecución de `sim_robot` con ROS 2 Humble en WSL; el nodo de la clase corre sin cambios contra `arena_rc1` y reproduce las cifras de su simulador de Python (experimento 1, sin ruido).
+- **No probado:** `sim.launch.py` completo con RViz sobre `arena_rc1`, Nav2 con el simulador, y todo lo del robot real.
+- Con muchas pruebas en paralelo la CPU se satura y el PID da resultados falsos: correr una a la vez (o ≤ 5).
+- El simulador **no** modela el derrape de las 4 ruedas ni el retardo de `/odom`.
+
+---
+
+| | |
+|---|---|
+| Robot / dominio | RosCar 4 · `ROS_DOMAIN_ID=8` (Pi y simulador) |
+| Nivel de ruido | `noise:=low` de trabajo; 1 corrida por prueba con `noise:=medium` |
+| Ganancias finales | [COMPLETAR] — simulador y robot real, por separado, en `config/rc1_pid.yaml` |
+| Odometría del robot real | `/odom` publicada por `odom_corrector` con `r = 0.03145`, `b_eff = 0.2138` (calibración del RC-0) |
+
+**Archivos del RC-1:** `config/rc1_pid.yaml`, `hoja_resultados.csv`, `csv/`, `plots/`, `bags/`, `sim_log.txt`, `informe.pdf` y `docs/rc1_g8/` (matriz de pruebas, predicciones, tabla de transferencia, plantilla del informe).
+
+**Nodo del curso:** `cuadrado_controller.py` y `core_cuadrado.py` (de `scripts_pdi.zip` del docente) se copian a `scripts_pdi/`, carpeta que git ignora. Se ejecutan desde la raíz del repo:
+
+```bash
+python3 scripts_pdi/cuadrado_controller.py --ros-args $(python3 scripts/rc1_args.py simulador experimento=cuadrado log_csv=csv/exp3b_sim_run1.csv)
+python3 scripts/rc1_verificar.py          # qué falta para la entrega (avance estimado)
+```
+
