@@ -10,7 +10,7 @@
 # Un parámetro por prueba: anota cada cambio en hoja_resultados.csv (columna notas).
 
 simulador:
-  estado: FINAL                # valores de las pruebas E2, E3 y E4 (arena_rc1)
+  estado: TERMINADO                # valores de las pruebas E2, E3 y E4 (arena_rc1)
   planta: "yahboomcar_sim, arena_rc1, noise:=low (valor de trabajo) y una corrida con medium"
   cuadrado_controller:
     ros__parameters:
